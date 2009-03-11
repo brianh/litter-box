@@ -10,12 +10,12 @@
 (into [] (map #(let [r (.get % 0)] @r) (:data m1)))
 (vec (map #(let [r (.get % 0)] @r) (:data m1)))
 
+(defn get-col [m c]
+   (map #(let [r (nth % c)] r) (:data m)))
+
 (defn get-cols [m]
   (for [c (range (:cols m))]
     (get-col m c)))
-	   
-(defn get-col [m c]
-   (map #(let [r (nth % c)] r) (:data m)))
 
 ;(defn get-row [m r]
  ; (nth (:data m) r))

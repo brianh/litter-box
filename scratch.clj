@@ -28,7 +28,7 @@
 
 (reduce get a ks)
 
-(def whole-nums (iterate inc 1))
+(map (partial reduce get a) (buildup ks))
 
 (defn buildup [coll]
   (for [n (iterate inc 1) :let [c (count coll)] :while (<= n c)] (take n coll)))
@@ -61,30 +61,3 @@
 
 (into [] (map ref (take 20 (repeatedly (partial rand-int 1000)))))
 (into [] (repeat 5 (into [] (map ref (take 5 (repeatedly (partial rand-int 1000)))))))
-
-(defn my-reduce
-  "f should be a function of 2 arguments. If val is not supplied,
-  returns the result of applying f to the first 2 items in coll, then
-  applying f to that result and the 3rd item, etc. If coll contains no
-  items, f must accept no ar(guments as well, and reduce returns the
-  result of calling f with no arguments.  If coll has only 1 item, it
-  is returned and f is not called.  If val is supplied, returns the
-  result of applying f to val and the first item in coll, then
-  applying f to that result and the 2nd item, etc. If coll contains no
-  items, returns val and f is not called."
-  ([f coll]
-   (let [s (seq coll)]
-     (if s
-       (if (instance? clojure.lang.IReduce s)
-         (. #^clojure.lang.IReduce s (reduce f))
-         (reduce f (first s) (next s)))
-       (f))))
-  ([f val coll]
-     (let [s (seq coll)]
-       (if (instance? clojure.lang.IReduce s)
-         (. #^clojure.lang.IReduce s (reduce f val))
-         ((fn [f val s]
-            (if s
-              (recur f (f val (first s)) (next s))
-              val))
-          f val s)))))
