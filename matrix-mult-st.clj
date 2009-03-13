@@ -9,30 +9,34 @@
   (time (do (doall (:data m3)) nil))
   (time (reduce unchecked-add (map unchecked-multiply (range 100) (repeat 1))))
   (time (reduce + (map * (range 100) (repeat 1))))
+  
+  (def m1 (sqr-matrix 5 (repeatedly (partial rand-int 10)) into-array))
 )
 
-(defn sqr-matrix [n coll]
-  (make-matrix n n coll))
+(defn make-v [n coll]
+  (apply vector (take n coll)))
 
 (defn make-matrix
   ( [r c]
-      (make-matrix r c (repeat 0)))
-  ( [r c coll]
-      {:rows r :cols c :data (partition c (take (* r c) coll))}))
+      (make-matrix r c (repeat 0)) vec)
+  ( [r c coll f]
+      {:rows r :cols c :data (f (map f (partition c (take (* r c) coll))))}))
+ ;     {:rows r :cols c :data (f (map (partial apply vector) (partition c (take (* r c) coll))))}))
+
+(defn sqr-matrix [n coll f]
+  (make-matrix n n coll f))
   
 (defn rands []
   (repeatedly rand))
 
-(defn flatten
-  (
-   [coll]
-     (let [f (first coll)
-	   n (next coll)]
-	 (if (coll? f)
-	   (concat (flatten f) (flatten n))
-	   (if f
-	     (cons f (flatten n))
-	     [])))))
+(defn flatten [coll]
+  (let [f (first coll)
+	n (next coll)]
+    (if (coll? f)
+      (concat (flatten f) (flatten n))
+      (if f
+	(cons f (flatten n))
+	[])))))
 
 ;(into [] (map #(let [r (.get % 0)] @r) (:data m1)))
 ;(vec (map #(let [r (.get % 0)] @r) (:data m1)))
@@ -67,7 +71,14 @@
 	       (for [r (:data m1)
 		     c (:data m2)]
 ;		     c (get-cols m2)]  order of magnitude hit in performance....
-		 (reduce + (pmap * r c)))))
+		 (reduce + (map * r c)))))
+
+(defn am-mult-hinted [m1 m2]
+  (make-matrix (:rows m1) (:cols m2)
+	       (for [#^ints r (:data m1)
+		     #^ints c (:data m2)]
+;		     c (get-cols m2)]  order of magnitude hit in performance....
+		 (areduce (amap * r c))))
 
 (defn m-mult1 [m1 m2]
   (make-matrix (:rows m1) (:cols m2)
