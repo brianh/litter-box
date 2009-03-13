@@ -14,11 +14,13 @@
 )
 (import '(java.util Arrays))
 
-(defn make-matrix
+(defn
+  #^doubles
+  make-matrix
   ( [r c]
-      (make-matrix r c (repeat 0)) vec)
-  ( [r c coll f]
-      {:rows r :cols c :data (f (map f (partition c (take (* r c) coll))))}))
+      (make-matrix r c (repeat 0)))
+  ( [r c coll]
+      (into-array (take (* r c) coll))))
 
 (defn sqr-matrix [n coll f]
   (make-matrix n n coll f))
