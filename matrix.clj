@@ -1,22 +1,4 @@
-(comment
-
-  (load-file "C:\\home\\lisp\\clj\\src\\git-repos\\litterbox\\matrix.clj")
-  (def m1 (sqr-matrix 50 (repeatedly (partial rand-int 2))))
-  (def m2 (sqr-matrix 50 (repeatedly (partial rand-int 2))))
-  (def m1 (sqr-matrix 256 (rands) into-array))
-  (def m2 (sqr-matrix 256 (rands) into-array))
-  (def m3 (am-mult-hinted m1 m2))
-  (time (do (doall (:data m3)) nil))
-  (time (reduce unchecked-add (map unchecked-multiply (range 100) (repeat 1))))
-  (time (reduce + (map * (range 100) (repeat 1))))
-  
-  (def m1 (sqr-matrix 5 (repeatedly (partial rand-int 10)) into-array))
-)
 (ns matrix '(import '(java.util Arrays)))
-
-(def a (apply vector (range 1 101)))
-(def b (into-array (map double-array (partition 10 (take 100 (repeatedly (partial rand-int 5)))))))
-(def m1 (make-matrix 10 10 a))
 
 (defstruct matrix :nrows :ncols :data :Type)
 
@@ -37,6 +19,7 @@
 	start (* r ncols)]
     (subvec data start (+ start ncols))))
 
+; uses modulo arithmatic... faster than the transpose1 fn
 (defn transpose [{rs :nrows cs :ncols data :data :as m}]
   (let [cnt (count data)
 	iter-rng (- cnt 1)]
@@ -88,6 +71,27 @@
 		 (r-c-mult r c)) into-array))
 
 
+(comment
+
+  (load-file "C:\\home\\lisp\\clj\\src\\git-repos\\litterbox\\matrix.clj")
+  (def m1 (sqr-matrix 50 (repeatedly (partial rand-int 2))))
+  (def m2 (sqr-matrix 50 (repeatedly (partial rand-int 2))))
+  (def m1 (sqr-matrix 256 (rands) into-array))
+  (def m2 (sqr-matrix 256 (rands) into-array))
+  (def m3 (am-mult-hinted m1 m2))
+  (time (do (doall (:data m3)) nil))
+  (time (reduce unchecked-add (map unchecked-multiply (range 100) (repeat 1))))
+  (time (reduce + (map * (range 100) (repeat 1))))
+  
+  (def m1 (sqr-matrix 5 (repeatedly (partial rand-int 10)) into-array))
+
+  (def a (apply vector (range 1 101)))
+  (def b (double-array 100 (repeatedly (partial rand-int 5))))
+  (def m1 (make-matrix 10 10 a))
+)
+
+;;;; old crap
+(comment
 (defn amult2 [rs cs]
   (amap rs i ret
     (* (aget ret i) (aget cs i))))
@@ -108,13 +112,4 @@
 		     c (:data m2)]
 ;		     c (get-cols m2)]  order of magnitude hit in performance....
 		 (reduce unchecked-add (map unchecked-multiply r c)))))
-
-;(defn matrix-deref [m]
-;  (for [r (:data m)
-;	rd r]
-;    @rd))
-
-;(defn matrix-deref [m]
-;  (for [r (:data m)]
-;    (map deref r)))
-
+)
