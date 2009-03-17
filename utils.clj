@@ -1,5 +1,18 @@
 (ns 'utils)
 
+(defn rands []
+  (repeatedly rand))
+
+(defn flatten [coll]
+  "Depth first tree flattening into a collection"
+  (let [f (first coll)
+	n (next coll)]
+    (if (coll? f)
+      (concat (flatten f) (flatten n))
+      (if f
+	(cons f (flatten n))
+	[]))))
+
 (defn sleep [millis]
   "Calling thread sleeps for millis milliseconds.  Does not
    handle any interruptions for the caller."

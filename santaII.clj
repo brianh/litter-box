@@ -94,7 +94,7 @@
   (assoc state ::task task))
 
 (defn enter-mtg-place [slave]
-  (
+  ())
   
 (defn workflow [grp task]
   (do

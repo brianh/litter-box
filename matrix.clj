@@ -1,6 +1,6 @@
 (comment
 
-  (load-file "C:\\home\\lisp\\clj\\src\\git-repos\\litterbox\\matrix-mult-st.clj")
+  (load-file "C:\\home\\lisp\\clj\\src\\git-repos\\litterbox\\matrix.clj")
   (def m1 (sqr-matrix 50 (repeatedly (partial rand-int 2))))
   (def m2 (sqr-matrix 50 (repeatedly (partial rand-int 2))))
   (def m1 (sqr-matrix 256 (rands) into-array))
@@ -12,40 +12,39 @@
   
   (def m1 (sqr-matrix 5 (repeatedly (partial rand-int 10)) into-array))
 )
-(import '(java.util Arrays))
+(ns matrix '(import '(java.util Arrays)))
 
-(defn
-  #^doubles
-  make-matrix
-  ( [r c]
-      (make-matrix r c (repeat 0)))
-  ( [r c coll]
-      (into-array (take (* r c) coll))))
+(def a (apply vector (range 1 101)))
+(def b (into-array (map double-array (partition 10 (take 100 (repeatedly (partial rand-int 5)))))))
+(def m1 (make-matrix 10 10 a))
 
-(defn sqr-matrix [n coll f]
-  (make-matrix n n coll f))
-  
-(defn rands []
-  (repeatedly rand))
+(defstruct matrix :nrows :ncols :data :Type)
 
-(defn flatten [coll]
-  "Depth first tree flattening into a collection"
-  (let [f (first coll)
-	n (next coll)]
-    (if (coll? f)
-      (concat (flatten f) (flatten n))
-      (if f
-	(cons f (flatten n))
-	[]))))
+(defn make-matrix [numrows numcols data]
+      (struct matrix numrows numcols data :true :Matrix))
 
 (defn get-col [m c]
-   (map #(let [r (nth % c)] r) (:data m)))
+  (let [{data :data step :ncols} m
+	cnt (count data)]
+    (apply vector (map (partial nth data) (range c cnt step)))))
 
 (defn get-cols [m]
-  (for [c (range (:cols m))]
-    (get-col m c)))
+  (apply vector (flatten (for [c (range (:ncols m))]
+			   (get-col m c)))))
 
-(defn matrix-transpose [{rs :rows cs :cols :as m}]
+(defn get-row [m r]
+  (let [{:keys [ncols data]} m
+	start (* r ncols)]
+    (subvec data start (+ start ncols))))
+
+(defn transpose [{rs :nrows cs :ncols data :data :as m}]
+  (let [cnt (count data)
+	iter-rng (- cnt 1)]
+    (conj (apply vector (map (partial nth data) 
+			     (take iter-rng (iterate (fn [x] (mod (+ x cs) iter-rng)) 0))))
+	  (nth data iter-rng))))
+
+(defn transpose1 [{rs :nrows cs :ncols data :data :as m}]
   (make-matrix cs rs (get-cols m)))
 
 (defn m-mult [m1 m2]
@@ -59,7 +58,8 @@
     (prn (apply vector r))))
 
 (defn mprn [m]
-  (aprn (:data m)))
+  (aprn (map (partial get-row m) (range (:nrows m)))))
+
 
 (defn am-mult-hinted [m1 m2]
   (make-matrix (:rows m1) (:cols m2)
