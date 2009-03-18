@@ -1,17 +1,26 @@
-(ns matrix
-  (:use 'litterbox.utils)
+(ns litterbox.matrix
+  (:use litterbox.utils)
   (:import (java.util Arrays)))
 
-(defstruct matrix ::Type ::nrows ::ncols ::data)
+(comment
+  (load-file "C:\\home\\lisp\\clj\\src\\git-repos\\litterbox\\matrix.clj")
+)
 
-(defn make-matrix [numrows numcols data]
-      (struct matrix ::Matrix numrows numcols data))
+(defstruct matrix ::data)
 
-(defn make-comp-matrix [numrows numcols sub-numrows sub-numcols data]
-      (struct matrix ::Comp numrows numcols data))
+(defn make-matrix [hint numrows numcols data]
+  #^{::nrows numrows ::ncols numcols ::tag matrix ::hint hint}
+  (struct matrix data))
 
-(defmulti mult (fn [m1 m2] [(::Type m1) (::Type m2)]))
-(defmethod mult [::Matrix ::Matrix] [m1 m2]
+(defn make-comp-matrix [hint numrows numcols sub-row-size sub-col-size data]
+  #^{::nrows numrows ::ncols numcols ::tag comp-matrix ::hint hint}
+  (struct matrix data))
+
+(defmulti mult (fn [m1 m2] [(::Type m1) (::Type m2) (::hint m1)]))
+(defmethod mult [::Matrix ::Matrix double] [m1 m2]
+  ())
+
+(defmethod mult [::Matrix ::Matrix int] [m1 m2]
   ())
 
 (defmethod mult [::Comp ::Comp] [m1 m2]
@@ -20,18 +29,20 @@
 (defmethod mult :default [m1 m2]
   (throw (Exception. "Invalid call to mult method")))
 
-
 (defmulti add (fn [m1 m2] [(::Type m1) (::Type m2)]))
+
 (defmethod add [::Matrix ::Matrix] [m1 m2]
-  ())
+  (let []
+    ( )))
+
 (defmethod add [::Comp ::Comp] [m1 m2]
-  ())
+  (map add (::data m1) (::data m2)))
 
 (defmethod add :default [m1 m2]
   (throw (Exception. "Invalid call to add method")))
 
 ;;-----------
-(defmulti print ::Type [m])
+(defmulti print  [m])
 (defmethod print ::Matrix [m]
   (let [{:keys [nrows ncols data]} m]
     (print (map (partial apply prn-str) (partition ncols data)))))

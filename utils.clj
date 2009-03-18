@@ -1,4 +1,4 @@
-(ns utils)
+(ns litterbox.utils)
 
 (defn rands []
   (repeatedly rand))
