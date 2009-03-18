@@ -15,7 +15,7 @@
       (struct matrix (count data) (count (aget data 0)) data)))
 
 (defn partition-matrix [m nrows ncols]
-  (
+  (print (apply str (map (partial apply prn-str) (partition 5 (range 15)))))
 
 ;;----------------
 ;; double

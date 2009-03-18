@@ -1,4 +1,4 @@
-(ns 'utils)
+(ns utils)
 
 (defn rands []
   (repeatedly rand))
