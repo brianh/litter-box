@@ -1,9 +1,20 @@
-(ns amatrix)
+(ns amatrix
+  (:use litterbox.utils))
+
+(comment
+  (load-file "C:\\home\\lisp\\clj\\src\\git-repos\\litterbox\\amatrix.clj")
+)
 
 (defstruct matrix :nrows :ncols :data)
 
+(defn print-matrix-agent [m]
+  (print (apply str (map (fn [a] (apply prn-str (interpose " " @a))) (:data m)))))
+
 (defn print-matrix [m]
-  (print (apply str (map (fn [a] (apply println-str (interpose " " a))) (:data m)))))
+  (print (apply str (map (fn [a] (apply prn-str (interpose " " a))) (:data m)))))
+
+(defn make-2d-array-agents [numrows numcols afn coll]
+  (into-array (map agent (map afn (partition  numrows (take (* numrows numcols) coll))))))
 
 (defn make-2d-array [numrows numcols afn coll]
   (into-array (map afn (partition numrows (take (* numrows numcols) coll)))))
@@ -14,8 +25,14 @@
   ( [data]
       (struct matrix (count data) (count (aget data 0)) data)))
 
+(defn make-matrix-agent
+  ( [numrows numcols afn def-val]
+      (make-matrix (make-2d-array numrows numcols afn (repeat def-val))))
+  ( [data]
+      (struct matrix (count data) (count @(aget data 0)) data)))
+
 (defn partition-matrix [m nrows ncols]
-  (print (apply str (map (partial apply prn-str) (partition 5 (range 15)))))
+  (print (apply str (map (partial apply prn-str) (partition 5 (range 15))))))
 
 ;;----------------
 ;; double
@@ -50,14 +67,48 @@
 	ncols (:nrows m2)
 	d1 (:data m1)
 	d2 (:data m2)
+	m (make-matrix-agent (make-2d-array-agents nrows ncols into-array (repeat 0)))]
+    (doseq [r (range nrows)
+	    c (range ncols)]
+      (send (aget (:data m) r)
+	    (fn[rowdata]
+	      (do (prn "got here" rowdata)
+	      (let [c (range (count rowdata))]
+		(print (apply prn-str rowdata))
+		(aset-double rowdata c (amult-sum-double rowdata (aget (:data m2) c)))
+		rowdata)))))
+    (apply await (:data m))
+    m))
+
+(defn mult-double-agent-1 [m1 m2]
+  (let [nrows (:nrows m1)
+	ncols (:nrows m2)
+	d1 (:data m1)
+	d2 (:data m2)
+	m (make-matrix (make-2d-array nrows ncols into-array (repeatedly #(agent 0))))]
+    (doseq [r (range nrows)
+	    c (range ncols)]
+      (send (aget (:data m) r c) (fn[state #^doubles row #^double col]
+			   (do
+			     (amult-sum-double row col)))
+	    (doubles (aget d1 r))
+	    (doubles (aget d2 c))))
+    (apply await (for [rs (:data m)
+		       c (range (:ncols m))]
+		   (nth rs c)))
+    m))
+
+(defn mult-double-agent-slow [m1 m2]
+  (let [nrows (:nrows m1)
+	ncols (:nrows m2)
+	d1 (:data m1)
+	d2 (:data m2)
 	m (agent (make-matrix nrows ncols double-array 0))]
     (doseq [r (range nrows)
 	    c (range ncols)]
       (send m (fn[m #^doubles row #^double col]
 		(let [v (amult-sum-double row col)]
-		  ;(prn "starting...." r c "=" v)
-		  (aset (:data m) r c v)
-		  ;(prn "m value" (aget (:data m) r c))
+		  (aset-double (:data m) r c v)
 		  m))
 	    (doubles (aget d1 r))
 	    (doubles (aget d2 c))))
@@ -82,11 +133,11 @@
 
 ;;------------------
 ;; int
-(defn asum-int [#^ints xs]
+(defn #^int asum-int [#^ints xs]
   (areduce xs i ret (int 0)
     (unchecked-add ret (int (aget xs i)))))
 
-(defn amult-sum-int [#^ints v1 #^ints v2]
+(defn #^int amult-sum-int [#^ints v1 #^ints v2]
   (asum-int (amap v1 i ret (unchecked-multiply (int (aget ret i)) (int (aget v2 i))))))
 
 (defn mult-int [m1 m2]

@@ -6,36 +6,36 @@
   (load-file "C:\\home\\lisp\\clj\\src\\git-repos\\litterbox\\matrix.clj")
 )
 
-(defstruct matrix ::data)
+(defstruct matrix ::nrows numrows ::ncols numcols ::data)
 
-(defn make-matrix [hint numrows numcols data]
-  #^{::nrows numrows ::ncols numcols ::tag matrix ::hint hint}
-  (struct matrix data))
+(defn make-matrix
+  ( [hint numrows numcols data]
+      #^{::tag ::Matrix ::hint hint}
+      (struct matrix data))
+  ( [numrows numcols sub-row-size sub-col-size data]
+      #^{::tag ::CompMatrix ::hint hint}
+      (struct matrix data)))
 
-(defn make-comp-matrix [hint numrows numcols sub-row-size sub-col-size data]
-  #^{::nrows numrows ::ncols numcols ::tag comp-matrix ::hint hint}
-  (struct matrix data))
-
-(defmulti mult (fn [m1 m2] [(::Type m1) (::Type m2) (::hint m1)]))
+(defmulti mult (fn [m1 m2] [(:tag m1) (:tag m2) (::hint m1)]))
 (defmethod mult [::Matrix ::Matrix double] [m1 m2]
   ())
 
 (defmethod mult [::Matrix ::Matrix int] [m1 m2]
   ())
 
-(defmethod mult [::Comp ::Comp] [m1 m2]
+(defmethod mult [::CompMatrix ::CompMatrix] [m1 m2]
   ())
 
 (defmethod mult :default [m1 m2]
   (throw (Exception. "Invalid call to mult method")))
 
-(defmulti add (fn [m1 m2] [(::Type m1) (::Type m2)]))
+(defmulti add (fn [m1 m2] [(::Type m1) (::Type m2) (::hint)]))
 
-(defmethod add [::Matrix ::Matrix] [m1 m2]
+(defmethod add [::Matrix ::Matrix double] [m1 m2]
   (let []
     ( )))
 
-(defmethod add [::Comp ::Comp] [m1 m2]
+(defmethod add [::CompMatrix ::CompMatrix] [m1 m2]
   (map add (::data m1) (::data m2)))
 
 (defmethod add :default [m1 m2]
