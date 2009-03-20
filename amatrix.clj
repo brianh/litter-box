@@ -7,11 +7,15 @@
 
 (defstruct matrix :nrows :ncols :data)
 
+;(defn print-matrix-agent [m]
+;  (print (apply str (map (fn [a] (apply prn-str (interpose " " @a))) (:data m)))))
+
 (defn print-matrix-agent [m]
-  (print (apply str (map (fn [a] (apply prn-str (interpose " " @a))) (:data m)))))
+  (print (apply str (map (fn [a] (apply prn-str @a)) (:data m)))))
 
 (defn print-matrix [m]
-  (print (apply str (map (fn [a] (apply prn-str (interpose " " a))) (:data m)))))
+  (print (apply str (map (partial apply prn-str) (:data m)))))
+  ;(print (apply str (map (fn [a] (apply prn-str (interpose " " a))) (:data m)))))
 
 (defn make-2d-array-agents [numrows numcols afn coll]
   (into-array (map agent (map afn (partition  numrows (take (* numrows numcols) coll))))))
@@ -67,16 +71,16 @@
 	ncols (:nrows m2)
 	d1 (:data m1)
 	d2 (:data m2)
-	m (make-matrix-agent (make-2d-array-agents nrows ncols into-array (repeat 0)))]
+	m (make-matrix-agent (make-2d-array-agents nrows ncols double-array (repeat 0)))]
     (doseq [r (range nrows)
 	    c (range ncols)]
       (send (aget (:data m) r)
-	    (fn[rowdata]
-	      (do (prn "got here" rowdata)
-	      (let [c (range (count rowdata))]
-		(print (apply prn-str rowdata))
-		(aset-double rowdata c (amult-sum-double rowdata (aget (:data m2) c)))
-		rowdata)))))
+	    (fn[rowdata cols]
+	      (dotimes  [c (range (count rowdata))]
+;		(print (apply prn-str rowdata))
+		(aset-double rowdata c (amult-sum-double rowdata (aget cols c)))
+		rowdata))
+	    (:data m2)))
     (apply await (:data m))
     m))
 
