@@ -7,7 +7,7 @@
   "Depth first tree flattening into a collection"
   (let [f (first coll)
 	n (next coll)]
-    (if (coll? f)
+    (if (first f)
       (concat (flatten f) (flatten n))
       (if f
 	(cons f (flatten n))
