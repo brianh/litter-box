@@ -1,16 +1,14 @@
 (ns litterbox.matrix-simple
-  (:use litterbox.utils)
-  (:import (java.util Arrays)))
+  (:use litterbox.utils))
 
 (comment
   (load-file "C:\\home\\lisp\\clj\\src\\git-repos\\litterbox\\matrix-simple.clj")
 )
 
-(defstruct matrix ::nrows ::ncols ::data)
+(defstruct matrix :nrows :ncols :data)
 
-(defn make-matrix
-  ( [numrows numcols data]
-      (struct numrows numcols matrix data)))
+(defn make-matrix [numrows numcols data]
+  (struct matrix numrows numcols (apply vector data)))
 
 (defn get-minor [matrix i]
   (let [{:keys [ncols data]} matrix 
@@ -22,42 +20,69 @@
 	start (* i ncols)]
     (subvec data start (+ start ncols))))
 
-(defn get-entry
-  ( [matrix i]
-      (nth (:data matrix) i))
-  ( [matrix i j]
-      (nth (:data matrix) (+ (* i (:ncols matrix)) j))))
+(defn get-majors [m]
+  (map (partial get-major m) (range (:nrows m))))
+
+(defn get-entry [matrix i j]
+  (nth (:data matrix) (+ (* i (:nrows matrix)) j)))
 
 ; uses modulo arithmatic... 
-(defn transpose [{rs :nrows cs :ncols data :data :as m}]
-  (let [cnt (count data)
-	iter-rng (- cnt 1)]
+(defn transpose-data [cs data]
+  (let [iter-rng (dec (count data))]
     (conj (apply vector (map (partial nth data) 
 			     (take iter-rng (iterate (fn [x] (mod (+ x cs) iter-rng)) 0))))
 	  (nth data iter-rng))))
 
+(defn transpose [{rs :nrows cs :ncols data :data}]
+  (make-matrix cs rs (transpose-data cs data)))
+
+(defn transpose-data2 [cs data]
+  (let [iter-rng (dec (count data))]
+    (conj (apply vector (map (partial nth data)
+			     (take iter-rng (map mod (map * (range (inc iter-rng))
+							  (repeat cs)) (repeat iter-rng)))))
+	  (last data))))
+
 (defn mult [m1 m2]
   (make-matrix (:nrows m1) (:ncols m2)
-	       (doseq [r (:data m1)
+	       (for [r (get-majors m1)
+		       c (get-majors m2)]
+		 (reduce + (map * r c)))))
+
+(defn mult2 [m1 m2]
+  (make-matrix (:nrows m1) (:ncols m2)
+	       (for [r (:data m1)
 		       c (:data m2)]
 		 (reduce + (map * r c)))))
 
 (defn prn-matrix [m]
-  (print (apply str (map (partial apply prn-str) (:nrows m)))))
+  (let [{:keys [nrows ncols data]} m]
+    (print (apply str (map (partial apply prn-str) (partition ncols data))))))
 
 (comment
-  (def m1 (sqr-matrix 50 (repeatedly (partial rand-int 2))))
-  (def m2 (sqr-matrix 50 (repeatedly (partial rand-int 2))))
-  (def m1 (sqr-matrix 256 (rands) into-array))
-  (def m2 (sqr-matrix 256 (rands) into-array))
-  (def m3 (am-mult-hinted m1 m2))
+  (def size 3)
+  (def size 5)
+  (def size 50)
+  (def size 150)
+  (def size 256)
+  (def size 512)
+  (def size 1024)
+
+  (def rng 2)
+  (def rng 10)
+
+  (def num-gen (repeatedly (partial rand-int rng)))
+  
+  (def m1 (make-matrix size size (take (* size size) (repeatedly (partial rand-int rng)))))
+  (def m2 (make-matrix size size (take (* size size) (repeatedly (partial rand-int rng)))))
+  
   (time (do (doall (:data m3)) nil))
   (time (reduce unchecked-add (map unchecked-multiply (range 100) (repeat 1))))
   (time (reduce + (map * (range 100) (repeat 1))))
   
-  (def m1 (sqr-matrix 5 (repeatedly (partial rand-int 10)) into-array))
+  (def m1 (make-matrix 3 5 (range 15)))
 
   (def a (apply vector (range 1 101)))
-  (def b (double-array 100 (repeatedly (partial rand-int 5))))
+  (def b (double-array 100 (repeatedly (partial rand-int 5))))n
   (def m1 (make-matrix 10 10 a))
 )
