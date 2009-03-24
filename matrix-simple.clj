@@ -30,29 +30,35 @@
 (defn transpose-data [cs data]
   (let [iter-rng (dec (count data))]
     (conj (apply vector (map (partial nth data) 
-			     (take iter-rng (iterate (fn [x] (mod (+ x cs) iter-rng)) 0))))
+			     (take iter-rng (iterate (ring-range cs iter-rng) 0))))
 	  (nth data iter-rng))))
 
 (defn transpose [{rs :nrows cs :ncols data :data}]
   (make-matrix cs rs (transpose-data cs data)))
 
-(defn transpose-data2 [cs data]
-  (let [iter-rng (dec (count data))]
-    (conj (apply vector (map (partial nth data)
-			     (take iter-rng (map mod (map * (range (inc iter-rng))
-							  (repeat cs)) (repeat iter-rng)))))
-	  (last data))))
+(defn add [m1 m2]
+  (make-matrix (:nrows m1) (:ncols m1)
+	       (map + (:data m1) (:data m2))))
 
 (defn mult [m1 m2]
   (make-matrix (:nrows m1) (:ncols m2)
 	       (for [r (get-majors m1)
-		       c (get-majors m2)]
+		     c (get-majors m2)]
 		 (reduce + (map * r c)))))
 
+;; 1/3 faster
+(defn mult3 [m1 m2]
+  (make-matrix (:nrows m1) (:ncols m2)
+	       (map (fn [r c] (reduce + (map * r c)))
+		    (repeat-each (:ncols m1)
+				 (partition (:ncols m1) (:data m1)))
+		    (cycle (partition (:ncols m2) (:data m2))))))
+
+;; slower
 (defn mult2 [m1 m2]
   (make-matrix (:nrows m1) (:ncols m2)
-	       (for [r (:data m1)
-		       c (:data m2)]
+	       (for [r (partition (:nrows m1) (:data m1))
+		     c (partition (:nrows m2) (:data m2))]
 		 (reduce + (map * r c)))))
 
 (defn prn-matrix [m]

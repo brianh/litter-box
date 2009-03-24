@@ -1,5 +1,9 @@
 (ns litterbox.utils)
 
+(comment
+  (load-file "C:\\home\\lisp\\clj\\src\\git-repos\\litterbox\\utils.clj")
+)
+
 (defn rands []
   (repeatedly rand))
 
@@ -27,10 +31,14 @@
   `(try ~form
 	~@(map #(list 'catch % 'e nil) es)))
 
-
-(defmacro handle [es form]
+(defmacro handle
+  ( [es form]
   `(try ~form
-	~@(map #(list 'catch % 'e nil) (fn [[a b]] (list 'catch a 'e ~b)) (partition 2 2 es))))
+	~@(map (fn [[a e b]] (list 'catch a e b)) (partition 3 es))))
+  ( [es form final]
+  `(try ~form
+	~@(map (fn [[a e b]] (list 'catch a e b)) (partition 3 es))
+	(finally ~final))))
 
 (defn spawn [f]
   (.start (Thread. f)))
@@ -39,6 +47,12 @@
   (reduce (fn [c [a b]] (assoc-in c a b)) orig deltas))
 
 (defn buildup [coll]
-  (for [n (iterate inc 1) :let [c (count coll)] :while (<= n c)] (take n coll)))
+  (let [cnt (count coll)]
+    (take cnt (map (fn [n] (take n coll)) (iterate inc 1)))))
 
-;(reduce into (map (fn [n] (repeat 3 (nth (range 5) n))) (range 1 4)))
+(defn ring-range [step rng]
+  (fn [n]
+    (mod (+ n step) rng)))
+
+(defn repeat-each [n coll]
+  (mapcat (fn [x] (repeat n x)) coll))
