@@ -40,3 +40,5 @@
 
 (defn buildup [coll]
   (for [n (iterate inc 1) :let [c (count coll)] :while (<= n c)] (take n coll)))
+
+;(reduce into (map (fn [n] (repeat 3 (nth (range 5) n))) (range 1 4)))
