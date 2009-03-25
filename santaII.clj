@@ -15,41 +15,46 @@
 (def output-lock (ref 0))
 (def screw-off-time 10000) ;in milliseconds
 
-(defmulti screw-off :Type)
-(defmulti queue-up :Type)
+(defmulti screw-off (fn [s mtg-place] (:Type s)))
+(defmulti queue-up (fn [s mtg-place] (:Type s)))
 
-(defmethod screw-off :elf [s]
+(defn display [& args]
+  (let [output (apply str (interpose " " args))]
+    (dosync
+     (ensure output-lock)
+     (println output))))
+
+(defmethod screw-off :elf [s mtg-place]
   (do
     (display "Elf" (:id s) "pretending to do something...")
     (ignore [InterruptedException] (sleep-rnd screw-off-time))
     (display "Elf" (:id s) "done pretending...")
-    (send-off s queue-up)
+    (send-off s queue-up mtg-place)
     s))
-(defmethod screw-off :deer [s]
+(defmethod screw-off :deer [s mtg-place]
   (do
     (display "Deer" (:id s) "off on holiday...")
     (ignore [InterruptedException] (sleep-rnd screw-off-time))
-    (send-off s queue-up)
+    (send-off s queue-up mtg-place)
     s))
 
-(defmethod queue-up :elf [s]
+(defmethod queue-up :elf [e mtg-place]
   (do
-    (display "Elf" (:id s) "figures it's time to see the fat old bastard...")
+    (display "Elf" (:id e) "figures it's time to see the fat old bastard...")
     (handle [Exception (do
-			 (display "Elf" (:id s) "tried it's best.  Better luck next time.")
-			 (send-off s screw-off))]
+			 (display "Elf" (:id e) "tried it's best.  Better luck next time.")
+			 (send-off e screw-off mtg-place))]
 	    (dosync
-	     (let [place-ref (:mtg-place s)
-		   place @place-ref]
-	       (if (:full @place-ref)
+	     (let [place @mtg-place]
+	       (if (:full place)
 		 (throw (Exception. "No room"))
 		 (do
 		   (let [q (:queue place)
-			 newq (conj q s)
+			 newq (conj q e)
 			 cap (:capacity place)]
-		     (ensure place-ref)
-		     (alter place-ref assoc :queue newq :full (< (count newq) cap))))))))
-    s))
+		     (ensure mtg-place) 
+		     (alter mtg-place assoc :queue newq :full (< (count newq) cap))))))))
+    e))
 
 (defn main [elf-cap deer-cap]
   (let [study (ref {:capacity elf-cap :full nil :queue [] :in []}); :validator valid-mtg-state?)
@@ -70,12 +75,6 @@
     ;(add-watch study )
     ;()))
 
-(defn display [& args]
-  (let [output (apply str (interpose " " args))]
-    (dosync
-     (ensure output-lock)
-     (println output))))
-
 
 ;;==============================================================
 ;;==============================================================
@@ -91,8 +90,9 @@
 (def study (ref {:capacity 3 :full nil :queue [] :in []}))
 
 (def elf1 (agent {:Type :elf
-		  :id 55
-		  :mtg-place study}))
+		  :id 55}))
+
+(send elf1 screw-off study)
 
 (defn enter [slave]
   ())
