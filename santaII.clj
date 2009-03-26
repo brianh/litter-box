@@ -40,6 +40,10 @@
 	;(display fun "... no args")
 	(fun state)))))
 
+(defn set-task [task]
+  (fn [state]
+    (assoc state :task task)))
+
 (def wait-patiently (struct task
 		      nil
 		      "wasting time in line..."
@@ -60,7 +64,7 @@
 		 (let [q (:queue place)
 		       newq (conj q state)
 		       cap (:capacity place)]
-		   (alter mtg-place assoc :queue newq :full (< (count newq) cap))
+		   (alter mtg-place assoc :queue newq :full (= (count newq) cap))
 		   (assoc state :task wait-patiently))))))))
 
 (def queue-up (struct task
@@ -74,6 +78,27 @@
 		       "pretending to do something..."
 		       assoc
 		       [:task queue-up]))
+
+(def entrez-vous-biatches (struct task
+				  nil
+				  "'Bout time the fat man got off his ass!"
+				  (fn [state]
+				    (let [place (:mtg-place state)
+					  ]
+				      ))))
+
+(def choose (struct task
+		    nil
+		    "Damnit!  Why can't they just leave me alone!"
+		    (fn [state]
+		      (let [active (:active-place state)]
+			(if active
+			  state
+			  (let [elves-ready (:full (:study state))
+				deer-ready (:full (:sleigh state))
+				new-active (if deer-ready (:study state) (:sleigh state))]
+			    (assoc state :active-place new-active)
+			    (map (fn [a] (send a entrez-vous-biatches)) (:queue new-active))))))))
 
 (defn main [elf-cap deer-cap]
   (let [study (ref {:capacity elf-cap :full nil :queue [] :in []})
@@ -112,9 +137,10 @@
 				      qcnt (count queue)]
 				  (if full
 				    (cond
-				      (= capacity qcnt) (display "Newly full" "study queue")
+				      (= capacity qcnt) (send santa choose)
 				      (= 0 qcnt) (display "Empty" "study queue")
-				      :true (display "Emptying the" "study queue"))))))
+				      :true (display "Emptying the" "study queue"))
+				    (display "one more entered the queue")))))
 
 (remove-watch study :study-watch)
 				  
@@ -124,6 +150,9 @@
 		  :mtg-place study}))
 
 (send elf whip-slave)
+
+(set! *print-level* 4)
+
 (dosync (alter study assoc :queue [] :full nil))
 
 (defn slave-monitor [slave task]
