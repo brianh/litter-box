@@ -3,6 +3,15 @@
 (comment
   (load-file "C:\\home\\lisp\\clj\\src\\git-repos\\litterbox\\utils.clj")
 )
+;, :nskeys #(keyword (ns-name *ns*) str %))})]
+(def display-lock (ref 0))
+
+(defn display [& args]
+  "Ensures write order"
+  (let [output (apply str (interpose " " args))]
+    (dosync
+     (ensure display-lock)
+     (println output))))))
 
 (defn rands []
   (repeatedly rand))
@@ -30,6 +39,15 @@
 (defmacro ignore [es form]
   `(try ~form
 	~@(map #(list 'catch % 'e nil) es)))
+
+(defn get-when-all
+  ;( [access pred a b] should extend to multiple colls
+   ;   (
+  ( [access pred mcoll]
+      (let [vs (map (fn [m] (get-in m access)) mcoll)]
+	(if (apply pred vs)
+	  vs
+	  nil))))
 
 (defmacro handle
   ( [es form]
