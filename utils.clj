@@ -4,6 +4,7 @@
   (load-file "C:\\home\\lisp\\clj\\src\\git-repos\\litterbox\\utils.clj")
 )
 ;, :nskeys #(keyword (ns-name *ns*) str %))})]
+;(keyword (str (ns-name *ns*)) "aoeu")
 (def display-lock (ref 0))
 
 (defn display [& args]
@@ -11,7 +12,7 @@
   (let [output (apply str (interpose " " args))]
     (dosync
      (ensure display-lock)
-     (println output))))))
+     (println output))))
 
 (defn rands []
   (repeatedly rand))

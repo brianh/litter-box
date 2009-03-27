@@ -77,10 +77,14 @@
 				  :entrez-vous-biatches 
 				  5000
 				  "'Bout time the fat man got off his ass!"
-				  (fn [state]
-				    (let [place (:mtg-place state)
-					  ]
-				      ))))
+				  (fn [{place-ref :mtg-place id :id :as state}]
+				    (let [place @place-ref
+					  {q :queue in :in} place
+					  id= (fn [aref] (= id (:id @aref)))]
+				      (if-let [a-ref (first (filter id= q))]
+					(dosync (alter place-ref assoc :queue (filter (complement id=) q))
+						(alter place-ref assoc :in (conj in a-ref))))))))
+					  
 
 (def choose (struct task
 		    :choose 
@@ -96,6 +100,14 @@
 			  (map (fn [a] (send a (set-task entrez-vous-biatches)))
 			       (:queue new-active)))))))
 
+(def work-em (struct task
+		    :work-em 
+		    2000
+		    "Time to make the lazy bastards earn their keep!"
+		    (fn [{active :active-place :as state}]
+		      (dosync (alter active assoc :full nil)
+			      (map (fn [a] (send a (set-task work)))  [))))
+
 (defn new-task-trigger [e]
   (add-watch e :new-task-watch (fn [k r {{oldname :name} :task}
 				    {{newname :name delay :delay}
@@ -106,6 +118,17 @@
 				     (if delay
 				       (ignore [InterruptedException] (sleep-rnd delay)))
 				     (send r whip-slave))))))
+
+(defn place-watcher [e asanta]
+  (add-watch e :place-watch (fn [k r old {:keys [full capacity queue in]}]
+			      (let [qcnt (count queue)
+				    icnt (count in)]
+				(if full
+				  (cond
+				    (= capacity qcnt) (send asanta (set-task choose))
+				    (= 0 qcnt) (send asanta (set-task work-em));(display "Empty" "study queue")
+				    :true (display "Emptying the" "queue"))
+				  (display "one more entered the queue")))))
 
 (defn main [elf-cap deer-cap]
   (let [study (ref {:capacity elf-cap :full nil :queue [] :in []})
@@ -135,8 +158,8 @@
 				  (if full
 				    (cond
 				      (= capacity qcnt) (send santa (set-task choose))
-				      (= 0 qcnt) (display "Empty" "study queue")
-				      :true (display "Emptying the" "study queue"))
+				      (= 0 qcnt) (send santa (set-task work-em));(display "Empty" "study queue")
+				      :true (display "Emptying the" "queue"))
 				    (display "one more entered the queue")))))
 
 (remove-watch study :place-watch)
@@ -152,9 +175,6 @@
 (set! *print-level* 4)
 
 (dosync (alter study assoc :queue [] :full nil))
-
-(defn slave-monitor [slave task]
-  (agent {:slave slave :task task}))
 
 )
 
