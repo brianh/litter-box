@@ -10,6 +10,7 @@
 
 (comment
   (load-file "C:\\home\\lisp\\clj\\src\\git-repos\\litterbox\\santaII.clj")
+  
 )
 
 (declare screw-off)
@@ -72,6 +73,8 @@
 		       "pretending to do something..."
 		       assoc
 		       [:task queue-up]))
+(defn refkey= [k v]
+  (fn [aref] (= v (k @aref)))
 
 (def entrez-vous-biatches (struct task
 				  :entrez-vous-biatches 
@@ -85,7 +88,6 @@
 					(dosync (alter place-ref assoc :queue (filter (complement id=) q))
 						(alter place-ref assoc :in (conj in a-ref))))))))
 					  
-
 (def choose (struct task
 		    :choose 
 		    4000
@@ -100,13 +102,27 @@
 			  (map (fn [a] (send a (set-task entrez-vous-biatches)))
 			       (:queue new-active)))))))
 
+(defn exit-place [{place-ref :mtg-place id :id :as state}]
+  (dosync
+   (let [in (:in @place-ref)]
+     (if-let [aref (first (filter (refkey= :id id) in))]
+       
+			       ))))
+
+(def work (struct task
+		  :work
+		  2000
+		  "Yeah, yeah.  Don't get your panties in a wad.... I'm on it."
+		  (fn [{place-ref :mtg-place :as state}]
+		    ())))
+
 (def work-em (struct task
 		    :work-em 
 		    2000
 		    "Time to make the lazy bastards earn their keep!"
 		    (fn [{active :active-place :as state}]
 		      (dosync (alter active assoc :full nil)
-			      (map (fn [a] (send a (set-task work)))  [))))
+			      (map (fn [a] (send a (set-task work))))))))
 
 (defn new-task-trigger [e]
   (add-watch e :new-task-watch (fn [k r {{oldname :name} :task}
@@ -126,7 +142,7 @@
 				(if full
 				  (cond
 				    (= capacity qcnt) (send asanta (set-task choose))
-				    (= 0 qcnt) (send asanta (set-task work-em));(display "Empty" "study queue")
+				    (= 0 qcnt) (send asanta (set-task work-em))
 				    :true (display "Emptying the" "queue"))
 				  (display "one more entered the queue")))))
 
@@ -151,16 +167,6 @@
 
 (comment
 (def study (ref {:capacity 3 :full nil :queue [] :in []}))
-
-(add-watch study :place-watch (fn [k r old {:keys [full capacity queue in]}]
-				(let [qcnt (count queue)
-				      icnt (count in)]
-				  (if full
-				    (cond
-				      (= capacity qcnt) (send santa (set-task choose))
-				      (= 0 qcnt) (send santa (set-task work-em));(display "Empty" "study queue")
-				      :true (display "Emptying the" "queue"))
-				    (display "one more entered the queue")))))
 
 (remove-watch study :place-watch)
 				  

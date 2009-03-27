@@ -4,7 +4,20 @@
   (load-file "C:\\home\\lisp\\clj\\src\\git-repos\\litterbox\\utils.clj")
 )
 ;, :nskeys #(keyword (ns-name *ns*) str %))})]
+;, :nskeys #(keyword (str (ns-name *ns*)) (str %))})]
 ;(keyword (str (ns-name *ns*)) "aoeu")
+
+(comment
+(reduce
+ (fn [bes entry]
+   (reduce #(assoc %1 %2 ((val entry) %2))
+	   (dissoc bes (key entry))
+	   ((key entry) bes)))
+ {:nskeys [nsx nsy] :keys [x y]}
+ {:keys #(keyword (str %)), :strs str, :syms #(list `quote %),
+  :nskeys #(keyword (str (ns-name *ns*)) (str %))})
+)
+
 (def display-lock (ref 0))
 
 (defn display [& args]
