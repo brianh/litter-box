@@ -10,7 +10,7 @@
 
 (comment
   (load-file "C:\\home\\lisp\\clj\\src\\git-repos\\litterbox\\santaII.clj")
-  
+
 )
 
 (declare screw-off)
@@ -74,7 +74,7 @@
 		       assoc
 		       [:task queue-up]))
 (defn refkey= [k v]
-  (fn [aref] (= v (k @aref)))
+  (fn [aref] (= v (k @aref))))
 
 (def entrez-vous-biatches (struct task
 				  :entrez-vous-biatches 
@@ -83,7 +83,7 @@
 				  (fn [{place-ref :mtg-place id :id :as state}]
 				    (let [place @place-ref
 					  {q :queue in :in} place
-					  id= (fn [aref] (= id (:id @aref)))]
+					  id= (refkey= :id id)];(fn [aref] (= id (:id @aref)))]
 				      (if-let [a-ref (first (filter id= q))]
 					(dosync (alter place-ref assoc :queue (filter (complement id=) q))
 						(alter place-ref assoc :in (conj in a-ref))))))))
@@ -106,15 +106,16 @@
   (dosync
    (let [in (:in @place-ref)]
      (if-let [aref (first (filter (refkey= :id id) in))]
-       
-			       ))))
+       (do
+	 (alter place-ref assoc :in (remove (refkey= :id id) in))
+	 (assoc state :task screw-off))
+       state))))
 
-(def work (struct task
-		  :work
-		  2000
-		  "Yeah, yeah.  Don't get your panties in a wad.... I'm on it."
-		  (fn [{place-ref :mtg-place :as state}]
-		    ())))
+(def kick-em-out (struct task
+			 :kick-em-out
+			 20000
+			 "Yeah, yeah.  Don't get your panties in a wad.... I'm on it."
+			 exit-place))
 
 (def work-em (struct task
 		    :work-em 
@@ -122,12 +123,11 @@
 		    "Time to make the lazy bastards earn their keep!"
 		    (fn [{active :active-place :as state}]
 		      (dosync (alter active assoc :full nil)
-			      (map (fn [a] (send a (set-task work))))))))
+			      (map (fn [a] (send a (set-task kick-em-out))))))))
 
 (defn new-task-trigger [e]
   (add-watch e :new-task-watch (fn [k r {{oldname :name} :task}
-				    {{newname :name delay :delay}
-				     :task type :type id :id txt :start-txt}]
+				    {{newname :name delay :delay} :task type :type id :id txt :start-txt}]
 				 (when-not (= oldname newname)
 				   (future
 				     (display type id txt)
@@ -135,28 +135,66 @@
 				       (ignore [InterruptedException] (sleep-rnd delay)))
 				     (send r whip-slave))))))
 
+(defn map-difference2 [m1 m2]
+  (reduce (fn [m entry] (let [k (key entry)
+			      v1 (val entry)
+			      v2 (k m2)]
+			  (if (= v1 v2)
+			    (dissoc m k)
+			    m)))
+	  m1 m1))
+
+(defn map-difference [m1 m2]
+  (let [ks (keys m1)]
+    (reduce dissoc m1 (filter identity (map (fn [k] (if (= (k m1) (k m2))
+						      k
+						      nil))
+					    ks)))))
+
+;(reduce #(apply assoc %1 %2) {} (filter (fn [e] (> (val e) 60)) mb))
+
 (defn place-watcher [e asanta]
-  (add-watch e :place-watch (fn [k r old {:keys [full capacity queue in]}]
+  (add-watch e :place-watch (fn [k r old {:keys [full capacity queue in] :as new}]
+			      (let [cmap (map-difference new old)
+				    incnt (count in)
+				    qcnt (count queue)]
+				(if (:full cmap)
+				  (cond
+				    (zero? incnt) (send asanta (set-task choose))
+				    (zero? qcnt) (send asanta (set-task work-em)))
+				  (if (zero? qcnt) (send asanta (set-task work-em))))))))
+				
+(defn place-watcher-old [e asanta]
+  (add-watch e :place-watch (fn [k r old {:keys [full capacity queue in] :as new}]
 			      (let [qcnt (count queue)
-				    icnt (count in)]
+				    icnt (count in)
+				    oldicnt (count (:in old))]
 				(if full
 				  (cond
 				    (= capacity qcnt) (send asanta (set-task choose))
 				    (= 0 qcnt) (send asanta (set-task work-em))
 				    :true (display "Emptying the" "queue"))
-				  (display "one more entered the queue")))))
+				  ;(cond
+				    ;((> qcnt 0) (display "one more entered the queue")))))))
+				    (display "one more entered the queue"))))))
 
 (defn main [elf-cap deer-cap]
   (let [study (ref {:capacity elf-cap :full nil :queue [] :in []})
-	sleigh (ref {:capacity elf-cap :full nil :queue [] :in []})
-        elves (for [n (range 1 10)] 
+	sleigh (ref {:capacity deer-cap :full nil :queue [] :in []})
+        elves (for [n (range 1 5)] 
 		(agent {:type "Elf" :id n :task screw-off :mtg-place study}))
-	deer (for [n (range 1 9)]
-	       (agent {:type "Deer" :id n :task screw-off :mtg-place sleigh}))
+;	deer (for [n (range 1 9)]
+;	       (agent {:type "Deer" :id n :task screw-off :mtg-place sleigh}))
 	santa (agent {:type "Master" :active-place nil :task screw-off :study study :sleigh sleigh})]
+    (place-watcher study santa)
+;    (place-watcher sleigh santa)
+    (map new-task-trigger elves)
+    (new-task-trigger santa)
+    
     ;(map deref elves)
     ;(map (fn [a] (send-off a screw-off)) elves)
-    [study sleigh elves deer santa]))
+    [study sleigh elves santa]))
+;    [study sleigh elves deer santa]))
     ;(add-watch sleigh  )
     ;(add-watch study )
     ;()))
@@ -167,6 +205,7 @@
 
 (comment
 (def study (ref {:capacity 3 :full nil :queue [] :in []}))
+(def study-old (ref {:capacity 3 :full :true :queue [] :in []}))
 
 (remove-watch study :place-watch)
 				  

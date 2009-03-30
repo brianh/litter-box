@@ -54,7 +54,7 @@
   `(try ~form
 	~@(map #(list 'catch % 'e nil) es)))
 
-(defn get-when-all
+(defn when-all
   ;( [access pred a b] should extend to multiple colls
    ;   (
   ( [access pred mcoll]
