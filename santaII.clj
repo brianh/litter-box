@@ -13,8 +13,7 @@
 
 )
 
-(declare screw-off wait-patiently entrez-vous-biatches
-	 kick-em-out)
+(declare screw-off wait-patiently entrez-vous-biatches kick-em-out)
 
 (def screw-off-time 20000) ;in milliseconds
 
@@ -75,19 +74,11 @@
       (display "Time to try picking a group.")
       (let [elves-ready (:full (:study state))
 	    deer-ready (:full (:sleigh state))
-	    new-active (if deer-ready (:study state) (:sleigh state))]
+	    new-active (if deer-ready (:sleigh state) (:study state))]
 	(display "One potatoe, two potatoe, three...." elves-ready deer-ready (:name new-active))
 	(map (fn [a] (send a (set-task entrez-vous-biatches)))
 	     (:queue new-active))
 	(assoc state :active-place new-active)))))
-
-
-;(let [elves-ready (:full (:study state))
-;	  deer-ready (:full (:sleigh state))
-;	  new-active (if deer-ready (:study state) (:sleigh state))]
-;      (map (fn [a] (send a (set-task entrez-vous-biatches)))
-;	   (:queue new-active))
-;      (assoc state :active-place new-active))))
 
 (defn exit-place [{place-ref :mtg-place id :id :as state}]
   (dosync
@@ -186,7 +177,8 @@
   (new-task-trigger santa)
   (new-task-trigger elf)
   (new-task-trigger elf1)
-  (new-task-trigger elf2))
+  (new-task-trigger elf2)
+  )
 
 
 (send elf (set-task screw-off))
