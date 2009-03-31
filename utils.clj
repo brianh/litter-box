@@ -16,6 +16,63 @@
  {:nskeys [nsx nsy] :keys [x y]}
  {:keys #(keyword (str %)), :strs str, :syms #(list `quote %),
   :nskeys #(keyword (str (ns-name *ns*)) (str %))})
+
+(let [f (future (dosync (let [v1 @r1 v2 @r2] (display "Future executing..." v1 v2) (ensure r1)
+			(ignore [InterruptedException] (sleep 15000)) (alter r1 * v1) (alter r2 inc) (display "Future post alter" @r1 @r2))))]
+  (ignore [InterruptedException]
+	  (sleep 1000))
+  (dosync (let [v1 @r1 v2 @r2] (ensure r2) (display "Main thread txn" v1 v2)
+   (alter r1 + v1) (alter r2 inc) (display "Future post alter" @r1 @r2)))
+  (display "Post-txn:" @f "...." @r1 @r2))
+
+(let [f (future (do
+		  (dosync (let [v1 @r1 v2 @r2]
+			    (display "Future executing..." v1 v2)
+			    (ensure r1)
+			    (ensure r2)
+			    (ignore [InterruptedException] (sleep 15000))
+			    (alter r1 * v1)
+			    (alter r2 inc)
+			    (display "Future post alter" @r1 @r2)
+			    (alter r3 (fn[_] (* @r1 @r2)))))
+		  (display "Future r3-->" @r3)))]
+  (ignore [InterruptedException]
+	  (sleep 1000))
+  (dosync (let [v1 @r1 v2 @r2] (ensure r2)(ensure r1) (display "Main thread txn" v1 v2)
+   (alter r1 + v1)
+   (alter r2 inc)
+   (display "Main post alter" @r1 @r2)
+   (alter r3 (fn[_] (+ @r1 @r2)))))
+  (display "Main r3 =>" @r3)
+  (display "Post-txn:" @f "...." @r1 @r2))
+
+(let [f (future (dosync (prn "executing...." @r1)
+			(ignore [InterruptedException] (sleep 15000)) (alter r2 inc)))]
+  (ignore [InterruptedException]
+	  (sleep 1000))
+  (prn "In-txn Ref value:" @r1)
+  (dosync
+   (ensure r2)
+   (alter r1 inc))
+  (prn "Post-txn:" @f))
+
+(let [f (future (do
+		  (dosync (let [v1 @r1 v2 @r2]
+			    (display "Future executing..." v1 v2)
+			    (ensure r1)
+			    (ensure r2)
+			    (ignore [InterruptedException] (sleep 15000))
+			    (let [nr1 (alter r1 * v1)
+			    nr2 (alter r2 inc)]
+			    (alter r3 (fn[v] (+ v (* nr1 nr2)))))))
+		  (display "Future post-txn -->" @r3)))]
+  (ignore [InterruptedException]
+	  (sleep 1000))
+  (dosync (let [v1 @r1 v2 @r2] (ensure r2)(ensure r1) (display "Main thread txn" v1 v2)
+   (let [nr1 (alter r1 + v1)
+   nr2 (alter r2 inc)]
+   (alter r3 (fn[v] (+ v nr1 nr2))))))
+  (display "Main Post-txn:...." @r3))
 )
 
 (def display-lock (ref 0))
