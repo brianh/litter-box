@@ -88,3 +88,21 @@
 
 (defn repeat-each [n coll]
   (mapcat (fn [x] (repeat n x)) coll))
+
+(defn map-difference2 [m1 m2]
+  (reduce (fn [m entry] (let [k (key entry)
+			      v1 (val entry)
+			      v2 (k m2)]
+			  (if (= v1 v2)
+			    (dissoc m k)
+			    m)))
+	  m1 m1))
+
+(defn map-difference [m1 m2]
+  (let [ks (keys m1)]
+    (reduce dissoc m1 (filter identity (map (fn [k] (if (= (k m1) (k m2))
+						      k
+						      nil))
+					    ks)))))
+
+;(reduce #(apply assoc %1 %2) {} (filter (fn [e] (> (val e) 60)) mb))
