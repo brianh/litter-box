@@ -5,24 +5,30 @@
   (in-ns 'litterbox.random-search)
   )
 
-(defn rand-coord [min max rand-fn]
-  (let [span (- max min)
-	
-  (fn []
-    (- (rand-fn (- max min)
-		  
-(defrecord Point2I [^int x ^int y])
-
-(defrecord Solution [value cost])
-
 (defprotocol Costable
-  (calc-cost [this cost-fn] "Calculates the cost."))
+  (calc-cost [this] "Calculates the cost."))
 
-(extend-protocol Costable
-  Solution
-  (calc-cost [this cost-fn]
-	     (:cost (cost-fn (:value this)))))
+(defrecord Point2d [x y]
+  Costable
+  (calc-cost [this]
+	     (+ (Math/pow (:x this) 2.0)
+		(Math/pow (:y this) 2.0))))
 
-(defn make-solution []
-  (let [x (- (rand-int 10) 5)
-	y (- (rand-int 10) 5)
+(defn bounded-rand-generator [rand-fn min max]
+  (let [xspan (- max min)]
+    (fn []
+      (- (rand-fn xspan) (/ xspan 2)))))
+
+(def r-gen (bounded-rand-generator rand -5 5))
+
+(def solution-space (map #(Point2d. %1 %2) (repeatedly r-gen) (repeatedly r-gen)))
+
+(defn find-solution [n best]
+  (if (= n 0)
+    best
+    ()))
+
+
+(comment
+  (take 2 (map #(Point2d. %1 %2) (repeatedly r-gen) (repeatedly r-gen)))
+  )
