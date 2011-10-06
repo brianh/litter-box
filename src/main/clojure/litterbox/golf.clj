@@ -4,7 +4,7 @@
 
 (def golfers [:brian :bill :mike :andy :chuck :chris :jeff :rich])
 
-(def pairing-pool (atom (into #{} (shuffle (for [g golfers
+(def pairing-pool (atom (into [] (shuffle (for [g golfers
 						 g2 golfers
 						 :when (not= g g2)]
 					     #{g g2})))))
