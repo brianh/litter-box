@@ -90,14 +90,28 @@
         :else
         (not (divisible-by-any n (range 3 (inc (int (Math/sqrt n))) 2)))))
 
+(defn primes-between [n m]
+  (filter prime? (range n m)))
+
 (defn primes-to [n]
-  (memoize (filter prime? (range 2 n))))
+  (primes-between 2 n))
+
+(defn prime-factors [n]
+  (loop [cur-n n
+         ps (primes-to n)
+         cur-prime (first ps)
+         fs [1]]
+    (if (seq ps)
+      (if (divisible-by cur-n cur-prime)
+        (recur (/ cur-n cur-prime) ps cur-prime (conj fs cur-prime))
+        (recur cur-n (rest ps) (first ps) fs))
+      (conj fs n))))
 
 (defn map-difference [m1 m2]
   (let [ks (keys m1)]
     (reduce dissoc m1 (filter identity (map (fn [k] (if (= (k m1) (k m2))
-						      k
-						      nil))
-					    ks)))))
+                                                      k
+                                                      nil))
+                                            ks)))))
 
 ;(reduce #(apply assoc %1 %2) {} (filter (fn [e] (> (val e) 60)) mb))
