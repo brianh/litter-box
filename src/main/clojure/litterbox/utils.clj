@@ -3,77 +3,6 @@
 (comment
   (load-file "/home/brian/code/clj/s4/src/main/clojure/litterbox/utils.clj")
 )
-;, :nskeys #(keyword (ns-name *ns*) str %))})]
-;, :nskeys #(keyword (str (ns-name *ns*)) (str %))})]
-;(keyword (str (ns-name *ns*)) "aoeu")
-
-(comment
-(reduce
- (fn [bes entry]
-   (reduce #(assoc %1 %2 ((val entry) %2))
-	   (dissoc bes (key entry))
-	   ((key entry) bes)))
- {:nskeys [nsx nsy] :keys [x y]}
- {:keys #(keyword (str %)), :strs str, :syms #(list `quote %),
-  :nskeys #(keyword (str (ns-name *ns*)) (str %))})
-
-(let [f (future (dosync (let [v1 @r1 v2 @r2] (display "Future executing..." v1 v2) (ensure r1)
-			(ignore [InterruptedException] (sleep 15000)) (alter r1 * v1) (alter r2 inc) (display "Future post alter" @r1 @r2))))]
-  (ignore [InterruptedException]
-	  (sleep 1000))
-  (dosync (let [v1 @r1 v2 @r2] (ensure r2) (display "Main thread txn" v1 v2)
-   (alter r1 + v1) (alter r2 inc) (display "Future post alter" @r1 @r2)))
-  (display "Post-txn:" @f "...." @r1 @r2))
-
-(let [f (future (do
-		  (dosync (let [v1 @r1 v2 @r2]
-			    (display "Future executing..." v1 v2)
-			    (ensure r1)
-			    (ensure r2)
-			    (ignore [InterruptedException] (sleep 15000))
-			    (alter r1 * v1)
-			    (alter r2 inc)
-			    (display "Future post alter" @r1 @r2)
-			    (alter r3 (fn[_] (* @r1 @r2)))))
-		  (display "Future r3-->" @r3)))]
-  (ignore [InterruptedException]
-	  (sleep 1000))
-  (dosync (let [v1 @r1 v2 @r2] (ensure r2)(ensure r1) (display "Main thread txn" v1 v2)
-   (alter r1 + v1)
-   (alter r2 inc)
-   (display "Main post alter" @r1 @r2)
-   (alter r3 (fn[_] (+ @r1 @r2)))))
-  (display "Main r3 =>" @r3)
-  (display "Post-txn:" @f "...." @r1 @r2))
-
-(let [f (future (dosync (prn "executing...." @r1)
-			(ignore [InterruptedException] (sleep 15000)) (alter r2 inc)))]
-  (ignore [InterruptedException]
-	  (sleep 1000))
-  (prn "In-txn Ref value:" @r1)
-  (dosync
-   (ensure r2)
-   (alter r1 inc))
-  (prn "Post-txn:" @f))
-
-(let [f (future (do
-		  (dosync (let [v1 @r1 v2 @r2]
-			    (display "Future executing..." v1 v2)
-			    (ensure r1)
-			    (ensure r2)
-			    (ignore [InterruptedException] (sleep 15000))
-			    (let [nr1 (alter r1 * v1)
-			    nr2 (alter r2 inc)]
-			    (alter r3 (fn[v] (+ v (* nr1 nr2)))))))
-		  (display "Future post-txn -->" @r3)))]
-  (ignore [InterruptedException]
-	  (sleep 1000))
-  (dosync (let [v1 @r1 v2 @r2] (ensure r2)(ensure r1) (display "Main thread txn" v1 v2)
-   (let [nr1 (alter r1 + v1)
-   nr2 (alter r2 inc)]
-   (alter r3 (fn[v] (+ v nr1 nr2))))))
-  (display "Main Post-txn:...." @r3))
-)
 
 (def display-lock (ref 0))
 
@@ -87,25 +16,15 @@
 (defn rands []
   (repeatedly rand))
 
-(defn flatten [coll]
-  "Depth first tree flattening into a collection"
-  (let [f (first coll)
-	n (next coll)]
-    (if (first f)
-      (concat (flatten f) (flatten n))
-      (if f
-	(cons f (flatten n))
-	[]))))
-
-(defn sleep [millis]
-  "Calling thread sleeps for millis milliseconds.  Does not
+(defn sleep [ms]
+  "Calling thread sleeps for ms milliseconds.  Does not
    handle any interruptions for the caller."
-  (Thread/sleep millis))
+  (Thread/sleep ms))
 
-(defn sleep-rnd [millis]
-  "Calling thread sleeps for [0 to millis).  Does not
+(defn sleep-rnd [ms]
+  "Calling thread sleeps for [0 to ms).  Does not
    handle any interruptions for the caller."
-  (sleep (rand millis)))
+  (sleep (rand ms)))
 
 (defmacro ignore [es form]
   `(try ~form
@@ -139,9 +58,11 @@
   (let [cnt (count coll)]
     (take cnt (map (fn [n] (take n coll)) (iterate inc 1)))))
 
-(defn ring-range [step rng]
+(defn ring-range [offset rng]
+  "Returns a fn that returns a number between 0 and rng (exclusive) always
+   with the specified offset."
   (fn [n]
-    (mod (+ n step) rng)))
+    (mod (+ n offset) rng)))
 
 (defn repeat-each [n coll]
   (mapcat (fn [x] (repeat n x)) coll))
@@ -154,6 +75,23 @@
 			    (dissoc m k)
 			    m)))
 	  m1 m1))
+
+(defn divisible-by [num div]
+  (zero? (rem num div)))
+
+(defn divisible-by-any [n s]
+  (and (seq s) (reduce #(or %1 %2) (map (partial divisible-by n) s))))
+
+(defn prime? [n]
+  (cond (= n 2)
+        true
+        (divisible-by n 2)
+        false
+        :else
+        (not (divisible-by-any n (range 3 (inc (int (Math/sqrt n))) 2)))))
+
+(defn primes-to [n]
+  (memoize (filter prime? (range 2 n))))
 
 (defn map-difference [m1 m2]
   (let [ks (keys m1)]
