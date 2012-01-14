@@ -82,7 +82,7 @@
 (defn divisible-by-any [n s]
   (and (seq s) (reduce #(or %1 %2) (map (partial divisible-by n) s))))
 
-(defn prime? [n]
+(defn- p? [n]
   (cond (= n 2)
         true
         (divisible-by n 2)
@@ -90,22 +90,29 @@
         :else
         (not (divisible-by-any n (range 3 (inc (int (Math/sqrt n))) 2)))))
 
-(defn primes-between [n m]
+(def prime? (memoize p?))
+
+(defn- primes-range [n m]
   (filter prime? (range n m)))
+
+(def primes-between (memoize primes-range))
 
 (defn primes-to [n]
   (primes-between 2 n))
 
 (defn prime-factors [n]
   (loop [cur-n n
-         ps (primes-to n)
+         ps (primes-to (inc (/ n 2)))
          cur-prime (first ps)
-         fs [1]]
+         fs []]
     (if (seq ps)
       (if (divisible-by cur-n cur-prime)
-        (recur (/ cur-n cur-prime) ps cur-prime (conj fs cur-prime))
+        (recur (/ cur-n cur-prime) (primes-between cur-prime (inc cur-n))  cur-prime (conj fs cur-prime))
         (recur cur-n (rest ps) (first ps) fs))
-      (conj fs n))))
+      fs)))
+
+(defn count-factors [p s]
+  (count (filter (partial = p) s)))
 
 (defn map-difference [m1 m2]
   (let [ks (keys m1)]
