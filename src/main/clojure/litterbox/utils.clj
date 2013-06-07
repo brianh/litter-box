@@ -1,4 +1,6 @@
-(ns litterbox.utils)
+(ns litterbox.utils
+  (:use [clojure.reflect]
+        [clojure.pprint]))
 
 (comment
   (load-file "/home/brian/code/clj/s4/src/main/clojure/litterbox/utils.clj")
@@ -82,7 +84,7 @@
 (defn divisible-by-any [n s]
   (and (seq s) (reduce #(or %1 %2) (map (partial divisible-by n) s))))
 
-(defn prime? [n]
+(defn- p? [n]
   (cond (= n 2)
         true
         (divisible-by n 2)
@@ -90,8 +92,16 @@
         :else
         (not (divisible-by-any n (range 3 (inc (int (Math/sqrt n))) 2)))))
 
-(defn primes-between [n m]
+(def prime?
+  (memoize p?))
+
+(defn- prime-range [n m]
   (filter prime? (range n m)))
+
+(def primes (filter prime? (iterate inc 2)))
+
+(def primes-between
+  (memoize prime-range))
 
 (defn primes-to [n]
   (primes-between 2 n))
@@ -111,6 +121,9 @@
   (count (filter (partial = p) s)))
 
 (comment
+(print-table (:members (reflect Math :ancestors true)))
+(map #(let [[b a] %] (- a b)) (partition 2 1 (primes-to 400)))
+  
 (for [x (range 1 25)
       :let [xfactors (prime-factors x)]]
   (println 
@@ -123,5 +136,3 @@
                                                       k
                                                       nil))
                                             ks)))))
-
-;(reduce #(apply assoc %1 %2) {} (filter (fn [e] (> (val e) 60)) mb))
