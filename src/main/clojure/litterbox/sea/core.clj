@@ -16,11 +16,23 @@
 
 (d/transact conn sea-schema)
 
-(defn new-entity [name]
-  [ {:db/id #db/id [:attributes]
-     :attribute/name name}])
+(defn new-name
+  ([name]
+     (new-name (new-entity) name))
+  ([e name]
+     (merge e
+            {:attribute.name/name name})))
 
-(def bob (new-entity "Bob"))
+(defn new-position
+  ([x y]
+     (new-position (new-entity) x y))
+  ([e x y]
+     (merge e
+            {:attribute.position/x x
+             :attribute.position/y y})))
+
+(defn new-entity []
+  {:db/id #db/id[:attributes]})
 
 (d/transact conn bob)
 
@@ -34,8 +46,7 @@
 (def named-rs (d/q named-entities-q (d/db conn)))
 (def positioned-rs (d/q positioned-entities-q (d/db conn)))
 
-
-
-
 (defn set-attr [e & kvs]
-  [(apply assoc {:db/id (:db/id e)} kvs)]))
+  [(apply assoc {:db/id (:db/id e)} kvs)])
+
+)
